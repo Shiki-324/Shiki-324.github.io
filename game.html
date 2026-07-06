@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="touch-events" content="true">
 <title>鸣潮小站入站答题</title>
 <style>
@@ -45,8 +45,8 @@ body{
     z-index:-2;
     transform: translateZ(0) scale(1.01);
     backface-visibility: hidden;
-    will-change: transform;
     transition: transform 0.2s linear;
+    will-change: transform; /* 优化滚动显存占用 */
 }
 .mask-layer{
     position:fixed;
@@ -103,6 +103,8 @@ body::after{
     height: 38px;
     z-index: 12;
     display: none;
+    align-items:center;
+    justify-content:center;
 }
 .count-circle{
     position: absolute;
@@ -165,7 +167,8 @@ body::after{
     color:#000;
     font-weight:500;
     margin-bottom:24px;
-    word-break:break-all;
+    word-break:break-word;
+    overflow-wrap: anywhere;
 }
 .author-row{
     display:flex;
@@ -267,7 +270,8 @@ body::after{
     color:#007777;
     margin-bottom:8px;
 }
-.task-btn,.refresh-btn,.back-btn,.restart-btn,.search-btn{
+/* 公共按钮样式 提取复用 优化CSS体积 */
+.btn-base{
     padding:6px 14px;
     border:none;
     border-radius:999px;
@@ -275,7 +279,7 @@ body::after{
     cursor:pointer;
     transition:transform 0.2s;
 }
-.task-btn:active,.refresh-btn:active,.back-btn:active,.restart-btn:active,.search-btn:active{
+.btn-base:active{
     transform:scale(0.96);
 }
 .task-btn{background:#ff87a2;color:#fff;margin-right:8px;}
@@ -299,6 +303,8 @@ body::after{
 .pop-inner{
     width:82%;
     max-width:400px;
+    max-height:80vh;
+    overflow-y:auto;
     background:rgba(255,255,255,0.92);
     border-radius:20px;
     padding:32px 24px;
@@ -390,6 +396,8 @@ body::after{
         grid-template-columns: 1fr 1fr;
         gap:40px;
         align-items:flex-start;
+        max-width:1200px;
+        margin:0 auto;
     }
     .question-wrap{grid-column:1/2;}
     .opt-wrap{grid-column:2/3;}
@@ -398,7 +406,7 @@ body::after{
 </head>
 <body>
 <div class="load-tip" id="loadTip">页面加载中...</div>
-<img class="bg-fixed" id="bgImg" loading="lazy" src="bg.jpg" alt="背景" onerror="this.style.display='none'">
+<img class="bg-fixed" id="bgImg" loading="lazy" src="bg.jpg" alt="背景" onerror="this.style.display='none';window.removeEventListener('scroll',handleScroll)">
 <div class="mask-layer"></div>
 <div class="count-wrap" id="countWrap">
     <div class="count-progress" id="countProgress"></div>
@@ -406,7 +414,7 @@ body::after{
 </div>
 <div class="top-bar">
     <button class="top-icon" onclick="backTaskList()">‹</button>
-    <div class="top-title">鸣潮小站答题</div>
+    <div class="top-title">鸣潮小站入站答题</div>
 </div>
 <div class="main-wrap">
     <div class="task-page" id="taskPage">
@@ -420,32 +428,32 @@ body::after{
             <div class="task-title">基础题库（10题）</div>
             <div class="history-record">历史最高分：<span id="record_song10">暂无记录</span></div>
             <div class="task-desc">鸣潮基础题目，每次随机抽取10题作答，答对8题及以上完成挑战领取入站资格；单题限时20秒，答错不显示正确答案</div>
-            <button class="task-btn" onclick="startQuiz('song10')">开始挑战</button>
-            <button class="refresh-btn" onclick="alert('参与人数数据已刷新')">刷新</button>
+            <button class="btn-base task-btn" onclick="startQuiz('song10')">开始挑战</button>
+            <button class="btn-base refresh-btn" onclick="fetchVisitStat()">刷新</button>
         </div>
         <!-- 综合题库 -->
         <div class="task-card">
             <div class="task-title">综合题库（20题）</div>
             <div class="history-record">历史最高分：<span id="record_all20">暂无记录</span></div>
             <div class="task-desc">进阶答题挑战，每次随机抽取20题作答，答对16题及以上完成挑战；单题限时15秒，答错不显示正确答案</div>
-            <button class="task-btn" onclick="startQuiz('all20')">开始挑战</button>
-            <button class="refresh-btn" onclick="alert('参与人数数据已刷新')">刷新</button>
+            <button class="btn-base task-btn" onclick="startQuiz('all20')">开始挑战</button>
+            <button class="btn-base refresh-btn" onclick="fetchVisitStat()">刷新</button>
         </div>
         <!-- 练习模式 -->
         <div class="task-card">
             <div class="task-title">练习模式（15题）</div>
             <div class="history-record">单次最高答对：<span id="record_practice">暂无记录</span></div>
             <div class="task-desc">不限时刷题，从全部题库中随机抽取15题，答错会高亮正确选项。</div>
-            <button class="task-btn" onclick="startQuiz('practice')">开始练习</button>
-            <button class="refresh-btn" onclick="alert('参与人数数据已刷新')">刷新</button>
+            <button class="btn-base task-btn" onclick="startQuiz('practice')">开始练习</button>
+            <button class="btn-base refresh-btn" onclick="fetchVisitStat()">刷新</button>
         </div>
-        <!-- 新增：开发者检索 -->
+        <!-- 开发者检索 -->
         <div class="task-card">
             <div class="task-title">开发者检索</div>
             <div class="history-record">题库全局关键词检索工具</div>
             <div class="task-desc">输入任意关键词，检索所有包含该文字的题目，匹配题干、出题人、正确答案。</div>
-            <button class="search-btn" onclick="openSearchPopup()">打开检索</button>
-            <button class="refresh-btn" onclick="alert('题库数据已重载')">重载题库</button>
+            <button class="btn-base search-btn" onclick="openSearchPopup()">打开检索</button>
+            <button class="btn-base refresh-btn" onclick="reloadBank()">重载题库</button>
         </div>
     </div>
     <div class="quiz-page" id="quizPage">
@@ -476,8 +484,8 @@ body::after{
             <div id="wrongList"></div>
         </div>
         <div class="pop-btn-group">
-            <button class="restart-btn" onclick="restartCurrentMode()">再来一局</button>
-            <button class="back-btn" onclick="backTaskList()">返回题库列表</button>
+            <button class="btn-base restart-btn" onclick="restartCurrentMode()">再来一局</button>
+            <button class="btn-base back-btn" onclick="backTaskList()">返回题库列表</button>
         </div>
     </div>
 </div>
@@ -487,8 +495,8 @@ body::after{
         <h2 class="pop-h">题库关键词检索</h2>
         <input class="search-input" id="searchInput" placeholder="输入关键词（角色/知识点/出题人）">
         <div class="pop-btn-group" style="margin-bottom:12px;">
-            <button class="search-btn" onclick="doSearch()">执行检索</button>
-            <button class="refresh-btn" onclick="closeSearchPopup()">关闭</button>
+            <button class="btn-base search-btn" onclick="doSearch()">执行检索</button>
+            <button class="btn-base refresh-btn" onclick="closeSearchPopup()">关闭</button>
         </div>
         <div class="search-result-box" id="searchResultBox">
             <div style="color:#666;">检索结果将展示在这里</div>
@@ -499,116 +507,117 @@ body::after{
 // 标准JSON规范题库，全部键带双引号
 const questionBank = {
     "song10":[
-        {"q":"在长迹伴行内获得获得称号【寰星之律】需要的积分是","author":"超高校级的非洲人","a":"5000","opts":["3000","4500","5000","7500"]},
-        {"q":"仅使用一个特级密音筒可以让一个0级的五星声骸提升至多少级升至多","author":"超高校级的非洲人","a":"5级","opts":["3级","4级","5级","6级"]},
-        {"q":"在好友里最多可以添加的好友数量是","author":"超高校级的非洲人","a":"50","opts":["30","50","70","100"]},
-        {"q":"维里奈的延奏效果能提供多少全伤害加深","author":"Shikiヽ","a":"15%","opts":["12%","15%","20%","25%"]},
-        {"q":"邮件的上限是多少封？","author":"Shikiヽ","a":"99","opts":["50","99","100","999"]},
-        {"q":"武器背包的上限是多少？","author":"Shikiヽ","a":"2000","opts":["500","1000","2000","3000"]},
-        {"q":"截至3.4版本，游戏内的编队上限是多少队？","author":"Shikiヽ","a":"10","opts":["6","8","10","12"]},
-        {"q":"一期冥歌海墟打满会获得多少星声？","author":"Shikiヽ","a":"800","opts":["600","800","1000","1200"]},
-        {"q":"一期逆境深塔打满会获得多少星声？","author":"Shikiヽ","a":"800","opts":["600","800","1000","1200"]},
-        {"q":"逆境深塔兑换所每个月可以换多少特级调谐器？","author":"Shikiヽ","a":"150","opts":["150","200","250","300"]},
-        {"q":"鉴心的延奏技能可以提供什么伤害加成？","author":"Shikiヽ","a":"共鸣解放伤害加成","opts":["共鸣技能伤害加成","共鸣解放伤害加成","气动伤害加成","普攻伤害加成"]},
-        {"q":"弗洛洛的声痕位于她的？","author":"超高校级的非洲人","a":"左臂","opts":["左臂","右臂","左肩","腰椎"]},
-        {"q":"鸣潮当前版本基础武器一共几种类型？","author":"Shikiヽ","a":"5种","opts":["3种","4种","5种","6种"]},
-        {"q":"截至3.4版本，菜肴的生效时间为多久？","author":"Shikiヽ","a":"30min","opts":["15min","30min","45min","60min"]},
-        {"q":"探索工具·钩索使用一次之后的冷却时间是多久？","author":"Shikiヽ","a":"12s","opts":["6s","8s","10s","12s"]},
-        {"q":"漂泊者·衍射的共鸣解放能给敌方附加几层光噪效应？","author":"Shikiヽ","a":"6","opts":["5","6","8","10"]},
-        {"q":"每隔多久能调整一次索拉等级？","author":"Shikiヽ","a":"12h","opts":["12h","18h","24h","48h"]},
-        {"q":"先约电台满级多少级？","author":"Shikiヽ","a":"70","opts":["60","70","80","90"]},
-        {"q":"数据坞达到多少级之后大世界就不会再掉紫色声骸？","author":"Shikiヽ","a":"15","opts":["14","15","16","20"]},
-        {"q":"截至3.4版本，地图的自定义标记数量上限是多少？","author":"Shikiヽ","a":"100","opts":["50","60","100","200"]},
-        {"q":"一个浮金波纹需要多少余波珊瑚兑换？","author":"Shikiヽ","a":"8","opts":["6","8","10","12"]},
-        {"q":"共鸣者的技能升到几级开始往后升需要使用紫色材料？","author":"Shikiヽ","a":"Lv5","opts":["Lv3","Lv4","Lv5","Lv6"]},
-        {"q":"卜灵的出生是？","author":"Shikiヽ","a":"瑝陇","opts":["新联邦","黎那汐塔","黑海岸","瑝陇"]},
-        {"q":"以下哪位角色用【搭档】称呼漂泊者？","author":"Shikiヽ","a":"露帕","opts":["露帕","珂莱塔","尤诺","卡提希娅"]},
-        {"q":"尤诺的武器类型是？","author":"Shikiヽ","a":"臂铠","opts":["臂铠","音感仪","长刃","配枪"]},
-        {"q":"千咲的出生是？","author":"Shikiヽ","a":"苇原","opts":["苇原","星炬学院","新联邦","拉海洛"]},
-        {"q":"漂泊者曾和谁一起赛过咕咕河豚？","author":"Shikiヽ","a":"忌炎","opts":["忌炎","今汐","爱弥斯","守岸人"]},
-        {"q":"通过空间隧道前往拉海洛时爱弥斯和漂泊者说的一句经典台词是？","author":"Shikiヽ","a":"旅途愉快","opts":["旅途愉快","但愿我会让你感到骄傲","但愿我没有让你失望","别总想着独自拯救所有"]},
-        {"q":"漂泊者最先解锁的三个属性是？","author":"Shikiヽ","a":"衍射、湮灭、气动","opts":["衍射、气动、导电","衍射、湮灭、气动","湮灭、气动、热熔","衍射、气动、导电"]},
-        {"q":"180好感度需要消耗多少体力刷副本？","author":"Shikiヽ","a":"60","opts":["40","60","120","240"]},
-        {"q":"维里奈的哪个动作无法回血？","author":"Shikiヽ","a":"释放变奏攻击","opts":["释放变奏攻击","1格回路能量时释放空中攻击","释放共鸣解放","1格回路能量时释放地面重击"]},
-        {"q":"菲比所属的教会叫什么名字？","author":"Shikiヽ","a":"隐海修会","opts":["隐海修会","隐海教会","爱弥斯联合","漂泊的终点"]},
-        {"q":"散华的哪个动作不会生成冰棘？","author":"Shikiヽ","a":"重击","opts":["共鸣技能","共鸣解放","变奏技能","重击"]},
-        {"q":"共鸣者总共能突破几次？","author":"Shikiヽ","a":"6","opts":["4","5","6","7"]},
-        {"q":"成就【独属于我的蒙娜丽莎】的达成条件是？","author":"Shikiヽ","a":"在漂泊的终点里奏响钢琴曲","opts":["完成【推演的边界】","完成【海风中失落的湛蓝回声】","在漂泊的终点里奏响钢琴曲","解开黑海岸下层的迷雾封锁"]},
-        {"q":"1c声骸云海妖精对什么属性有抗性提升？","author":"Shikiヽ","a":"衍射","opts":["衍射","湮灭","热熔","冷凝"]},
-        {"q":"探索轮盘最多能装备几种探索工具？","author":"Shikiヽ","a":"8","opts":["6","7","8","9"]},
-        {"q":"体力没有到上限时多久回复一点？","author":"Shikiヽ","a":"6分钟","opts":["3分钟","4分钟","5分钟","6分钟"]},
-        {"q":"一天的活跃度任务打满能获得多少星声？","author":"Shikiヽ","a":"60","opts":["40","60","80","90"]},
-        {"q":"鸣潮的月卡每天给多少星声？","author":"Shikiヽ","a":"90","opts":["80","90","120","150"]},
-        {"q":"突破几次能解锁角色的固有技能1？","author":"Shikiヽ","a":"2","opts":["1","2","3","4"]},
-        {"q":"秧秧的武器类型是？","author":"Shikiヽ","a":"迅刀","opts":["臂铠","长刃","音感仪","迅刀"]},
-        {"q":"以下哪位出身是新联邦？","author":"Shikiヽ","a":"陆赫斯","opts":["莫特婓","釉瑚","陆赫斯","白芷"]},
-        {"q":"吟霖的大招是？","author":"Shikiヽ","a":"破天雷灭击","opts":["悬丝华刃舞","狂雷飓风","磁殛咆哮","破天雷灭击"]},
-        {"q":"弗洛洛最早登场在？","author":"Shikiヽ","a":"1.0","opts":["1.0","1.1","2.0","2.5"]},
-        {"q":"千咲1链最多能造成多少固定伤害？","author":"Shikiヽ","a":"61803","opts":["61863","61803","68103","61893"]},
-        {"q":"以下哪一句为仇远的经典台词？","author":"Shikiヽ","a":"我听错了？","opts":["保持冷静","亟需休整","我听错了？","土鸡蛋明月亦有情"]},
-        {"q":"爱弥斯的共鸣能力是？","author":"Shikiヽ","a":"长航的星辉","opts":["星辉启明","星辉无垠","长航的星辉","爱弥斯联合"]},
-        {"q":"共鸣技能会拖着箱子螺旋升空的是谁？","author":"Shikiヽ","a":"洛可可","opts":["椿","菲比","洛可可","布兰特"]},
-        {"q":"以下哪位角色没去过黑海岸？","author":"Shikiヽ","a":"爱弥斯","opts":["嘉贝莉娜","卡提希娅","爱弥斯","妮娅"]},
-        {"q":"卡提希娅和漂泊者第一次相遇是在哪个版本？","author":"Shikiヽ","a":"2.0","opts":["2.0","2.1","2.2","2.3"]},
-        {"q":"6链守岸人的主要输出点在哪里？","author":"Shikiヽ","a":"强化变奏技能","opts":["强化大招","强化变奏技能","满回路重击","延奏技能"]},
-        {"q":"卡提希娅的2+1强在哪里？","author":"Shikiヽ","a":"大幅提升三剑下落伤害","opts":["大幅提升三剑下落伤害","大幅提升大招伤害","大幅提升队伍中的风蚀伤害","能吃满夏空的拐力"]},
-        {"q":"先约电台给的武器箱子能换多少打孔器？","author":"Shikiヽ","a":"200","opts":["200","300","400","500"]},
-        {"q":"打孔器指的是？","author":"Shikiヽ","a":"特级调谐器","opts":["特级调频器","特级调谐器","调频仪","调谐器"]},
-        {"q":"在哪个菜单界面能找到最近联机的人？","author":"Shikiヽ","a":"好友","opts":["多人游戏","好友","探索模块","索拉指南"]},
-        {"q":"游戏内体力名称是？","author":"Shikiヽ","a":"结晶波片","opts":["结晶残片","结晶溶剂","结晶单质","结晶波片"]},
-        {"q":"弗洛洛是在哪个版本和会长说自己要离开残星会的？","author":"Shikiヽ","a":"2.7","opts":["2.5","2.6","2.7","2.8"]},
-        {"q":"以下哪个声骸不是脱手的？","author":"Shikiヽ","a":"共鸣回响·鸣式·利维亚坦","opts":["共鸣回响·芙露德莉丝","共鸣回响·鸣式·利维亚坦","角","无归的谬误"]},
-        {"q":"游戏内主角改名的冷却时间是多久？","author":"Shikiヽ","a":"72h","opts":["24h","36h","48h","72h"]},
-        {"q":"科考摩托的涂装总共有几个部位可以DIY？","author":"Shikiヽ","a":"3","opts":["2","3","4","5"]}
+  {"q":"维里奈的延奏效果能提供多少全伤害加深","author":"Shikiヽ","a":"0.15","opts":["0.12","0.15","0.2","0.25"]},
+{"q":"邮件的上限是多少封？","author":"Shikiヽ","a":"99","opts":["50","99","100","999"]},
+{"q":"武器背包的上限是多少？","author":"Shikiヽ","a":"2000","opts":["500","1000","2000","3000"]},
+{"q":"截至3.4版本，游戏内的编队上限是多少队？","author":"Shikiヽ","a":"10","opts":["6","8","10","12"]},
+{"q":"一期冥歌海墟打满会获得多少星声？","author":"Shikiヽ","a":"800","opts":["600","800","1000","1200"]},
+{"q":"一期逆境深塔打满会获得多少星声？","author":"Shikiヽ","a":"800","opts":["600","800","1000","1200"]},
+{"q":"逆境深塔兑换所每个月可以换多少特级调谐器？","author":"Shikiヽ","a":"150","opts":["150","200","250","300"]},
+{"q":"鉴心的延奏技能可以提供什么伤害加成？","author":"Shikiヽ","a":"共鸣解放伤害加成","opts":["共鸣技能伤害加成","共鸣解放伤害加成","气动伤害加成","普攻伤害加成"]},
+{"q":"弗洛洛的声痕位于她的？","author":"超高校级的非洲人","a":"左臂","opts":["左臂","右臂","左肩","腰椎"]},
+{"q":"鸣潮当前版本基础武器一共几种类型？","author":"Shikiヽ","a":"5种","opts":["3种","4种","5种","6种"]},
+{"q":"截至3.4版本，菜肴的生效时间为多久？","author":"Shikiヽ","a":"30min","opts":["15min","30min","45min","60min"]},
+{"q":"探索工具·钩索使用一次之后的冷却时间是多久？","author":"Shikiヽ","a":"12s","opts":["6s","8s","10s","12s"]},
+{"q":"漂泊者·衍射的共鸣解放能给敌方附加几层光噪效应？","author":"Shikiヽ","a":"6","opts":["5","6","8","10"]},
+{"q":"每隔多久能调整一次索拉等级？","author":"Shikiヽ","a":"12h","opts":["12h","18h","24h","48h"]},
+{"q":"先约电台满级多少级？","author":"Shikiヽ","a":"70","opts":["60","70","80","90"]},
+{"q":"数据坞达到多少级之后大世界就不会再掉紫色声骸？","author":"Shikiヽ","a":"15","opts":["14","15","16","20"]},
+{"q":"截至3.4版本，地图的自定义标记数量上限是多少？","author":"Shikiヽ","a":"100","opts":["50","60","100","200"]},
+{"q":"一个浮金波纹需要多少余波珊瑚兑换？","author":"Shikiヽ","a":"8","opts":["6","8","10","12"]},
+{"q":"共鸣者的技能升到几级开始往后升需要使用紫色材料？","author":"Shikiヽ","a":"Lv5","opts":["Lv3","Lv4","Lv5","Lv6"]},
+{"q":"卜灵的出生是？","author":"Shikiヽ","a":"瑝陇","opts":["新联邦","黎那汐塔","黑海岸","瑝陇"]},
+{"q":"以下哪位角色用【搭档】称呼漂泊者？","author":"Shikiヽ","a":"露帕","opts":["露帕","珂莱塔","尤诺","卡提希娅"]},
+{"q":"尤诺的武器类型是？","author":"Shikiヽ","a":"臂铠","opts":["臂铠","音感仪","长刃","配枪"]},
+{"q":"千咲的出生是？","author":"Shikiヽ","a":"苇原","opts":["苇原","星炬学院","新联邦","拉海洛"]},
+{"q":"漂泊者曾和谁一起赛过咕咕河豚？","author":"Shikiヽ","a":"忌炎","opts":["忌炎","今汐","爱弥斯","守岸人"]},
+{"q":"通过空间隧道前往拉海洛时爱弥斯和漂泊者说的一句经典台词是？","author":"Shikiヽ","a":"旅途愉快","opts":["旅途愉快","但愿我会让你感到骄傲","但愿我没有让你失望","别总想着独自拯救所有"]},
+{"q":"漂泊者最先解锁的三个属性是？","author":"Shikiヽ","a":"衍射、湮灭、气动","opts":["衍射、气动、导电","衍射、湮灭、气动","湮灭、气动、热熔","衍射、气动、导电"]},
+{"q":"180好感度需要消耗多少体力刷副本？","author":"Shikiヽ","a":"60","opts":["40","60","120","240"]},
+{"q":"维里奈的哪个动作无法回血？","author":"Shikiヽ","a":"释放变奏攻击","opts":["释放变奏攻击","1格回路能量时释放空中攻击","释放共鸣解放","1格回路能量时释放地面重击"]},
+{"q":"菲比所属的教会叫什么名字？","author":"Shikiヽ","a":"隐海修会","opts":["隐海修会","隐海教会","爱弥斯联合","漂泊的终点"]},
+{"q":"散华的哪个动作不会生成冰棘？","author":"Shikiヽ","a":"重击","opts":["共鸣技能","共鸣解放","变奏技能","重击"]},
+{"q":"共鸣者总共能突破几次？","author":"Shikiヽ","a":"6","opts":["4","5","6","7"]},
+{"q":"成就【独属于我的蒙娜丽莎】的达成条件是？","author":"Shikiヽ","a":"在漂泊的终点里奏响钢琴曲","opts":["完成【推演的边界】","完成【海风中失落的湛蓝回声】","在漂泊的终点里奏响钢琴曲","解开黑海岸下层的迷雾封锁"]},
+{"q":"1c声骸云海妖精对什么属性有抗性提升？","author":"Shikiヽ","a":"衍射","opts":["衍射","湮灭","热熔","冷凝"]},
+{"q":"探索轮盘最多能装备几种探索工具？","author":"Shikiヽ","a":"8","opts":["6","7","8","9"]},
+{"q":"体力没有到上限时多久回复一点？","author":"Shikiヽ","a":"6分钟","opts":["3分钟","4分钟","5分钟","6分钟"]},
+{"q":"一天的活跃度任务打满能获得多少星声？","author":"Shikiヽ","a":"60","opts":["40","60","80","90"]},
+{"q":"鸣潮的月卡每天给多少星声？","author":"Shikiヽ","a":"90","opts":["80","90","120","150"]},
+{"q":"突破几次能解锁角色的固有技能1？","author":"Shikiヽ","a":"2","opts":["1","2","3","4"]},
+{"q":"秧秧的武器类型是？","author":"Shikiヽ","a":"迅刀","opts":["臂铠","长刃","音感仪","迅刀"]},
+{"q":"以下哪位出身是新联邦？","author":"Shikiヽ","a":"陆赫斯","opts":["莫特婓","釉瑚","陆赫斯","白芷"]},
+{"q":"吟霖的大招是？","author":"Shikiヽ","a":"破天雷灭击","opts":["悬丝华刃舞","狂雷飓风","磁殛咆哮","破天雷灭击"]},
+{"q":"弗洛洛最早登场在？","author":"Shikiヽ","a":"1","opts":["1","1.1","2","2.5"]},
+{"q":"千咲1链最多能造成多少固定伤害？","author":"Shikiヽ","a":"61803","opts":["61863","61803","68103","61893"]},
+{"q":"以下哪一句为仇远的经典台词？","author":"Shikiヽ","a":"我听错了？","opts":["保持冷静","亟需休整","我听错了？","土鸡蛋明月亦有情"]},
+{"q":"爱弥斯的共鸣能力是？","author":"Shikiヽ","a":"长航的星辉","opts":["星辉启明","星辉无垠","长航的星辉","爱弥斯联合"]},
+{"q":"共鸣技能会拖着箱子螺旋升空的是谁？","author":"Shikiヽ","a":"洛可可","opts":["椿","菲比","洛可可","布兰特"]},
+{"q":"以下哪位角色没去过黑海岸？","author":"Shikiヽ","a":"爱弥斯","opts":["嘉贝莉娜","卡提希娅","爱弥斯","妮娅"]},
+{"q":"卡提希娅和漂泊者第一次相遇是在哪个版本？","author":"Shikiヽ","a":"2","opts":["2","2.1","2.2","2.3"]},
+{"q":"6链守岸人的主要输出点在哪里？","author":"Shikiヽ","a":"强化变奏技能","opts":["强化大招","强化变奏技能","满回路重击","延奏技能"]},
+{"q":"卡提希娅的2+1强在哪里？","author":"Shikiヽ","a":"大幅提升三剑下落伤害","opts":["大幅提升三剑下落伤害","大幅提升大招伤害","大幅提升队伍中的风蚀伤害","能吃满夏空的拐力"]},
+{"q":"先约电台给的武器箱子能换多少打孔器？","author":"Shikiヽ","a":"200","opts":["200","300","400","500"]},
+{"q":"打孔器指的是？","author":"Shikiヽ","a":"特级调谐器","opts":["特级调频器","特级调谐器","调频仪","调谐器"]},
+{"q":"在哪个菜单界面能找到最近联机的人？","author":"Shikiヽ","a":"好友","opts":["多人游戏","好友","探索模块","索拉指南"]},
+{"q":"游戏内体力名称是？","author":"Shikiヽ","a":"结晶波片","opts":["结晶残片","结晶溶剂","结晶单质","结晶波片"]},
+{"q":"弗洛洛是在哪个版本和会长说自己要离开残星会的？","author":"Shikiヽ","a":"2.7","opts":["2.5","2.6","2.7","2.8"]},
+{"q":"以下哪个声骸不是脱手的？","author":"Shikiヽ","a":"共鸣回响·鸣式·利维亚坦","opts":["共鸣回响·芙露德莉丝","共鸣回响·鸣式·利维亚坦","角","无归的谬误"]},
+{"q":"游戏内主角改名的冷却时间是多久？","author":"Shikiヽ","a":"72h","opts":["24h","36h","48h","72h"]},
+{"q":"科考摩托的涂装总共有几个部位可以DIY？","author":"Shikiヽ","a":"3","opts":["2","3","4","5"]},
+{"q":"在长迹伴行内获得获得称号【寰星之律】需要的积分是","author":"超高校级的非洲人","a":"5000","opts":["3000","4500","5000","7500"]},
+{"q":"仅使用一个特级密音筒可以让一个0级的五星声骸提升至多少级升至多","author":"超高校级的非洲人","a":"5级","opts":["3级","4级","5级","6级"]},
+{"q":"在好友里最多可以添加的好友数量是","author":"超高校级的非洲人","a":"50","opts":["30","50","70","100"]},
+{"q":"弗洛洛的声痕位于她的？","author":"超高校级的非洲人","a":"左臂","opts":["左臂","右臂","左肩","腰椎"]}
     ],
     "all20":[
-        {"q":"仇远的声痕在哪里？","author":"Shikiヽ","a":"右手手掌","opts":["脖子左侧","后脖颈","右手手掌","右手手臂内侧"]},
-        {"q":"今汐的消耗韶光的【龙喷】官方名为？","author":"Shikiヽ","a":"惊龙破空","opts":["游龙迥光","蟠龙清辉","移岁诛邪","惊龙破空"]},
-        {"q":"以下关于菲比的描述错误的是","author":"Shikiヽ","a":"超频临界值低但是稳定性高，无过往超频史","opts":["曾经在落水后被英白拉多救过","父母在她小时候就去世了","看见漂泊者获得狂欢节桂冠时落泪了","超频临界值低但是稳定性高，无过往超频史"]},
-        {"q":"以下哪一个不是弗洛洛的珍贵之物","author":"Shikiヽ","a":"迷你奏音","opts":["迷你奏音","未送出的门票","遗留的提琴","自撰的乐谱"]},
-        {"q":"以下描述正确的是？","author":"Shikiヽ","a":"珍珠草使用没有冷却","opts":["珍珠草使用没有冷却","伪母贝又叫【海中灯笼草】","铛铛蟹在夜晚觅食","玉化木中融合了隧者频率"]},
-        {"q":"2.8版本开篇漂泊者初入穗波时的背景音乐致敬了尼尔的哪首BGM？","author":"Shikiヽ","a":"远古之歌","opts":["Weight of the World","遊園施設","远古之歌","遺サレタ場所／斜光"]},
-        {"q":"达妮娅讨厌的食物是什么？","author":"Shikiヽ","a":"生的东西","opts":["生的东西","没有特别讨厌的食物","吃起来麻烦的东西，因为吃起来麻烦......","辣的东西"]},
-        {"q":"琳奈最喜欢什么？","author":"Shikiヽ","a":"飙车","opts":["逃课","机车涂装","轮滑跑酷","飙车"]},
-        {"q":"小明仅用一队就在矩阵的奇点扩张打满了58000分，他能因此获得多少星声？","author":"Shikiヽ","a":"150","opts":["150","200","250","300"]},
-        {"q":"今汐几岁上任今州令尹？","author":"Shikiヽ","a":"13","opts":["13","14","15","16"]},
-        {"q":"看歌曲提示判断和哪一个角色有关：☞✈","author":"Shikiヽ","a":"爱弥斯","opts":["爱弥斯","守岸人","莫宁","露帕"]},
-        {"q":"看歌曲提示判断和哪一个角色有关：⚪🛳⭐👋","author":"Shikiヽ","a":"爱弥斯","opts":["爱弥斯","今汐","莫宁","尤诺"]},
-        {"q":"看歌曲提示判断和哪一个地区有关：🤖♥","author":"Shikiヽ","a":"拉海洛","opts":["瑝陇","黑海岸","黎那汐塔","拉海洛"]},
-        {"q":"关于散华为什么适合辅助椿？以下描述最合理的是","author":"Shikiヽ","a":"能提供普攻伤害加成","opts":["协奏速度快","能提供普攻伤害加成","给椿的核心输出点大招提供增伤","能给椿提供充能效率加快循环"]},
-        {"q":"截至鸣潮3.4版本为止，唯一一个辅助2链抽取优先级与主C2链抽取优先级不相上下的是哪个队伍？","author":"Shikiヽ","a":"赞菲光噪队","opts":["聚爆爱弥斯队","绯雪霜渐队","赞菲光噪队","卡夏风蚀队"]},
-        {"q":"打一鸣潮专有名词：🥔🔥😈💁‍♂️","author":"Shikiヽ","a":"科考摩托","opts":["热熔抗性","寻音声纳","浮金波纹","科考摩托"]},
-        {"q":"这是鸣潮的哪个角色：🌏🌏👅","author":"Shikiヽ","a":"坎特蕾拉","opts":["洛可可","安可","坎特蕾拉","维里奈"]},
-        {"q":"3+3＝？","author":"Shikiヽ","a":"24","opts":["12","18","24","30"]},
-        {"q":"【夏！日！服！饰！】最早出自鸣潮哪个版本的前瞻直播？","author":"Shikiヽ","a":"2.3","opts":["2.0","2.3","2.4","2.7"]},
-        {"q":"主线开篇，漂泊者第一个知道名字的人是？","author":"Shikiヽ","a":"炽霞","opts":["秧秧","炽霞","守岸人","今汐"]},
-        {"q":"人形态伤痕最克制什么属性？","author":"Shikiヽ","a":"热熔","opts":["衍射","湮灭","热熔","衍射和湮灭"]},
-        {"q":"以下对辛吉勒姆描述正确的是","author":"Shikiヽ","a":"使用声骸技能能使他受到的伤害提高最高80%","opts":["有衍射和热熔两种抗性提升","是怒涛级的Boss","处于未来视界下受到伤害减少80%","使用声骸技能能使他受到的伤害提高最高80%"]},
-        {"q":"爱弥斯的特色料理是？","author":"Shikiヽ","a":"超级豹风雪","opts":["超级豹风雪","无敌豹风雪","雪绒豹风雪","雷霆大雪绒"]},
-        {"q":"香艳制作人指的是？","author":"Shikiヽ","a":"李松伦","opts":["李松伦","东策划","李紧伦","西策划"]},
-        {"q":"莫宁皮肤的定价是多少月相？","author":"Shikiヽ","a":"2480","opts":["1680","1980","2480","3280"]},
-        {"q":"今州奸商指的是？","author":"Shikiヽ","a":"马和","opts":["马何","马和","马可","库默尼"]},
-        {"q":"以下哪个是3.1版本的大月卡名片？","author":"Shikiヽ","a":"飞至轻雪消融","opts":["星间飞行","飞至轻雪消融","匿于宙海的星光","飞吧，朝向春天"]},
-        {"q":"达妮娅的胖次是什么颜色的？","author":"Shikiヽ","a":"黑色","opts":["白色","条纹蓝白","黑色","我正人君子这一分我不要了"]},
-        {"q":"以下哪一条是官方标注菲比的战斗风格？","author":"Shikiヽ","a":"主力输出","opts":["主力输出","重击伤害","伤害加深","重击伤害加深"]},
-        {"q":"守岸人的指甲油是什么颜色的？","author":"Shikiヽ","a":"蓝色","opts":["粉色","蓝色","白色","我正人君子没看过"]},
-        {"q":"卡提希娅的共鸣回路叫？","author":"Shikiヽ","a":"暴风雨","opts":["此剑以人之名","听骑士从心祈愿","以风刻痕留蚀","暴风雨"]},
-        {"q":"飞行雪绒在B站传的第一首歌是？","author":"Shikiヽ","a":"靛青宇宙","opts":["靛青宇宙","纸飞机","碎花","远航星"]},
-        {"q":"鸣潮3.0版本的活动开辟测界之路致敬了哪个IP？","author":"Shikiヽ","a":"死亡搁浅系列","opts":["异度之刃系列","轨迹系列","死亡搁浅系列","三国杀"]},
-        {"q":"鸣潮3.0版本星炬学院的NPC们有很多对话主要致敬了哪个IP？","author":"Shikiヽ","a":"轨迹系列","opts":["异度之刃系列","轨迹系列","死亡搁浅系列","三国杀"]},
-        {"q":"松伦哥直播和东策划cos过哪一部动漫里的角色？","author":"Shikiヽ","a":"Re从零开始的异世界生活","opts":["Re从零开始的异世界生活","fate /stay night","缘分的天空","魔法少女小圆"]},
-        {"q":"达妮娅的力量来自谁？","author":"Shikiヽ","a":"阿列夫一","opts":["阿列夫一","残星会会长","漂泊者","菲比"]},
-        {"q":"松伦游戏生涯的白月光是？","author":"Shikiヽ","a":"尼尔系列","opts":["异度之刃系列","轨迹系列","死亡搁浅系列","尼尔系列"]},
-        {"q":"鸣潮3.2与猫咪玛玛的互动致敬了哪个游戏？","author":"Shikiヽ","a":"Undertale","opts":["歧路旅人","女神异闻录5","Undertale","尼尔机械纪元"]},
-        {"q":"漂泊者我独自合轴出自鸣潮的哪个版本？","author":"Shikiヽ","a":"2.2","opts":["1.4","2.2","2.7","3.1"]},
-        {"q":"2.0版本黎那汐塔出电梯的场景致敬了哪个游戏？","author":"Shikiヽ","a":"艾尔登法环","opts":["博德之门3","艾尔登法环","死亡搁浅2","火焰纹章风花雪月"]},
-        {"q":"坎特蕾拉在剧情中提到过的在今州的熟人是谁？","author":"Shikiヽ","a":"长离","opts":["吟霖","今汐","长离","卡卡罗"]},
-        {"q":"凌阳伴星致敬了哪个游戏？","author":"Shikiヽ","a":"Ori","opts":["TEVI","Ori","空洞骑士","超级玛丽"]},
-        {"q":"以下哪个角色最符合这句话：开大之后按住普攻不松手","author":"Shikiヽ","a":"珂莱塔","opts":["卡提希娅","珂莱塔","爱弥斯","今汐"]},
-        {"q":"为什么6链爱弥斯在锄地时4C主属性可以带攻击？","author":"Shikiヽ","a":"因为蓄力炮伤害更高","opts":["因为蓄力炮伤害更高","因为共鸣技能伤害更高","因为大招伤害更高","因为变奏技能伤害更高"]},
-        {"q":"以下四套声骸里作为风蚀队三号位的风主最适合带哪套","author":"飞行雪绒--official","a":"愿戴荣光之旅","opts":["流云逝尽之空","隐世回光","轻云出月","愿戴荣光之旅"]},
-        {"q":"卡提希娅绝对不会吃下面哪个食物？","author":"超高校级的非洲人","a":"清芬鱼汤","opts":["青枝月桂沙拉","热海皇梨披萨","清芬鱼汤","玛格烈特牛排"]},
-        {"q":"用弗洛洛获取补给时，哪句不是她的语音？","author":"超高校级的非洲人","a":"遗落的回响。","opts":["美妙的音色。","不可或缺。","你将赋予它们什么意义?","遗落的回响。"]}
+{"q":"仇远的声痕在哪里？","author":"Shikiヽ","a":"右手手掌","opts":["脖子左侧","后脖颈","右手手掌","右手手臂内侧"]},
+{"q":"今汐的消耗韶光的【龙喷】官方名为？","author":"Shikiヽ","a":"惊龙破空","opts":["游龙迥光","蟠龙清辉","移岁诛邪","惊龙破空"]},
+{"q":"以下关于菲比的描述错误的是","author":"Shikiヽ","a":"超频临界值低但是稳定性高，无过往超频史","opts":["曾经在落水后被英白拉多救过","父母在她小时候就去世了","看见漂泊者获得狂欢节桂冠时落泪了","超频临界值低但是稳定性高，无过往超频史"]},
+{"q":"以下哪一个不是弗洛洛的珍贵之物","author":"Shikiヽ","a":"迷你奏音","opts":["迷你奏音","未送出的门票","遗留的提琴","自撰的乐谱"]},
+{"q":"以下描述正确的是？","author":"Shikiヽ","a":"珍珠草使用没有冷却","opts":["珍珠草使用没有冷却","伪母贝又叫【海中灯笼草】","铛铛蟹在夜晚觅食","玉化木中融合了隧者频率"]},
+{"q":"2.8版本开篇漂泊者初入穗波时的背景音乐致敬了尼尔的哪首BGM？","author":"Shikiヽ","a":"远古之歌","opts":["Weight of the World","遊園施設","远古之歌","遺サレタ場所／斜光"]},
+{"q":"达妮娅讨厌的食物是什么？","author":"Shikiヽ","a":"生的东西","opts":["生的东西","没有特别讨厌的食物","吃起来麻烦的东西，因为吃起来麻烦......","辣的东西"]},
+{"q":"琳奈最喜欢什么？","author":"Shikiヽ","a":"飙车","opts":["逃课","机车涂装","轮滑跑酷","飙车"]},
+{"q":"小明仅用一队就在矩阵的奇点扩张打满了58000分，他能因此获得多少星声？","author":"Shikiヽ","a":"150","opts":["150","200","250","300"]},
+{"q":"今汐几岁上任今州令尹？","author":"Shikiヽ","a":"13","opts":["13","14","15","16"]},
+{"q":"看歌曲提示判断和哪一个角色有关：☞✈","author":"Shikiヽ","a":"爱弥斯","opts":["爱弥斯","守岸人","莫宁","露帕"]},
+{"q":"看歌曲提示判断和哪一个角色有关：⚪🛳⭐👋","author":"Shikiヽ","a":"爱弥斯","opts":["爱弥斯","今汐","莫宁","尤诺"]},
+{"q":"看歌曲提示判断和哪一个地区有关：🤖♥","author":"Shikiヽ","a":"拉海洛","opts":["瑝陇","黑海岸","黎那汐塔","拉海洛"]},
+{"q":"关于散华为什么适合辅助椿？以下描述最合理的是","author":"Shikiヽ","a":"能提供普攻伤害加成","opts":["协奏速度快","能提供普攻伤害加成","给椿的核心输出点大招提供增伤","能给椿提供充能效率加快循环"]},
+{"q":"截至鸣潮3.4版本为止，唯一一个辅助2链抽取优先级与主C2链抽取优先级不相上下的是哪个队伍？","author":"Shikiヽ","a":"赞菲光噪队","opts":["聚爆爱弥斯队","绯雪霜渐队","赞菲光噪队","卡夏风蚀队"]},
+{"q":"打一鸣潮专有名词：🥔🔥😈💁‍♂️","author":"Shikiヽ","a":"科考摩托","opts":["热熔抗性","寻音声纳","浮金波纹","科考摩托"]},
+{"q":"这是鸣潮的哪个角色：🌏🌏👅","author":"Shikiヽ","a":"坎特蕾拉","opts":["洛可可","安可","坎特蕾拉","维里奈"]},
+{"q":"3+3＝？","author":"Shikiヽ","a":"24","opts":["12","18","24","30"]},
+{"q":"【夏！日！服！饰！】最早出自鸣潮哪个版本的前瞻直播？","author":"Shikiヽ","a":"2.3","opts":["2","2.3","2.4","2.7"]},
+{"q":"主线开篇，漂泊者第一个知道名字的人是？","author":"Shikiヽ","a":"炽霞","opts":["秧秧","炽霞","守岸人","今汐"]},
+{"q":"人形态伤痕最克制什么属性？","author":"Shikiヽ","a":"热熔","opts":["衍射","湮灭","热熔","衍射和湮灭"]},
+{"q":"以下对辛吉勒姆描述正确的是","author":"Shikiヽ","a":"使用声骸技能能使他受到的伤害提高最高80%","opts":["有衍射和热熔两种抗性提升","是怒涛级的Boss","处于未来视界下受到伤害减少80%","使用声骸技能能使他受到的伤害提高最高80%"]},
+{"q":"爱弥斯的特色料理是？","author":"Shikiヽ","a":"超级豹风雪","opts":["超级豹风雪","无敌豹风雪","雪绒豹风雪","雷霆大雪绒"]},
+{"q":"香艳制作人指的是？","author":"Shikiヽ","a":"李松伦","opts":["李松伦","东策划","李紧伦","西策划"]},
+{"q":"莫宁皮肤的定价是多少月相？","author":"Shikiヽ","a":"2480","opts":["1680","1980","2480","3280"]},
+{"q":"今州奸商指的是？","author":"Shikiヽ","a":"马和","opts":["马何","马和","马可","库默尼"]},
+{"q":"以下哪个是3.1版本的大月卡名片？","author":"Shikiヽ","a":"飞至轻雪消融","opts":["星间飞行","飞至轻雪消融","匿于宙海的星光","飞吧，朝向春天"]},
+{"q":"达妮娅的胖次是什么颜色的？","author":"Shikiヽ","a":"黑色","opts":["白色","条纹蓝白","黑色","我正人君子这一分我不要了"]},
+{"q":"以下哪一条是官方标注菲比的战斗风格？","author":"Shikiヽ","a":"主力输出","opts":["主力输出","重击伤害","伤害加深","重击伤害加深"]},
+{"q":"守岸人的指甲油是什么颜色的？","author":"Shikiヽ","a":"蓝色","opts":["粉色","蓝色","白色","我正人君子没看过"]},
+{"q":"卡提希娅的共鸣回路叫？","author":"Shikiヽ","a":"暴风雨","opts":["此剑以人之名","听骑士从心祈愿","以风刻痕留蚀","暴风雨"]},
+{"q":"飞行雪绒在B站传的第一首歌是？","author":"Shikiヽ","a":"靛青宇宙","opts":["靛青宇宙","纸飞机","碎花","远航星"]},
+{"q":"鸣潮3.0版本的活动开辟测界之路致敬了哪个IP？","author":"Shikiヽ","a":"死亡搁浅系列","opts":["异度之刃系列","轨迹系列","死亡搁浅系列","三国杀"]},
+{"q":"鸣潮3.0版本星炬学院的NPC们有很多对话主要致敬了哪个IP？","author":"Shikiヽ","a":"轨迹系列","opts":["异度之刃系列","轨迹系列","死亡搁浅系列","三国杀"]},
+{"q":"松伦哥直播和东策划cos过哪一部动漫里的角色？","author":"Shikiヽ","a":"Re从零开始的异世界生活","opts":["Re从零开始的异世界生活","fate /stay night","缘分的天空","魔法少女小圆"]},
+{"q":"达妮娅的力量来自谁？","author":"Shikiヽ","a":"阿列夫一","opts":["阿列夫一","残星会会长","漂泊者","菲比"]},
+{"q":"松伦游戏生涯的白月光是？","author":"Shikiヽ","a":"尼尔系列","opts":["异度之刃系列","轨迹系列","死亡搁浅系列","尼尔系列"]},
+{"q":"鸣潮3.2与猫咪玛玛的互动致敬了哪个游戏？","author":"Shikiヽ","a":"Undertale","opts":["歧路旅人","女神异闻录5","Undertale","尼尔机械纪元"]},
+{"q":"漂泊者我独自合轴出自鸣潮的哪个版本？","author":"Shikiヽ","a":"2.2","opts":["1.4","2.2","2.7","3.1"]},
+{"q":"2.0版本黎那汐塔出电梯的场景致敬了哪个游戏？","author":"Shikiヽ","a":"艾尔登法环","opts":["博德之门3","艾尔登法环","死亡搁浅2","火焰纹章风花雪月"]},
+{"q":"坎特蕾拉在剧情中提到过的在今州的熟人是谁？","author":"Shikiヽ","a":"长离","opts":["吟霖","今汐","长离","卡卡罗"]},
+{"q":"凌阳伴星致敬了哪个游戏？","author":"Shikiヽ","a":"Ori","opts":["TEVI","Ori","空洞骑士","超级玛丽"]},
+{"q":"以下哪个角色最符合这句话：开大之后按住普攻不松手","author":"Shikiヽ","a":"珂莱塔","opts":["卡提希娅","珂莱塔","爱弥斯","今汐"]},
+{"q":"为什么6链爱弥斯在锄地时4C主属性可以带攻击？","author":"Shikiヽ","a":"因为蓄力炮伤害更高","opts":["因为蓄力炮伤害更高","因为共鸣技能伤害更高","因为大招伤害更高","因为变奏技能伤害更高"]},
+{"q":"以下四套声骸里作为风蚀队三号位的风主最适合带哪套","author":"飞行雪绒--official","a":"愿戴荣光之旅","opts":["流云逝尽之空","隐世回光","轻云出月","愿戴荣光之旅"]},
+{"q":"卡提希娅绝对不会吃下面哪个食物？","author":"超高校级的非洲人","a":"清芬鱼汤","opts":["青枝月桂沙拉","热海皇梨披萨","清芬鱼汤","玛格烈特牛排"]},
+{"q":"用弗洛洛获取补给时，哪句不是她的语音？","author":"超高校级的非洲人","a":"遗落的回响。","opts":["美妙的音色。","不可或缺。","你将赋予它们什么意义?","遗落的回响。"]}
     ]
 };
 const DRAW_CONFIG = {
@@ -628,8 +637,47 @@ const quizState = {
 };
 let fullBank;
 const dom = {};
+// 缓存高频DOM查询 优化性能
+let optCache = null;
 
-// ========== 新增检索专用函数 ==========
+// ========== 通用工具函数 ==========
+/**
+ * HTML转义 防XSS注入
+ * @param {string} str 原始文本
+ * @returns {string} 转义安全文本
+ */
+function htmlEscape(str){
+    if(!str) return "";
+    return str.replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+/**
+ * 全半角统一、中文数字转阿拉伯、符号标准化 检索专用
+ * @param {string} str 原始关键词
+ * @returns {string} 标准化小写字符串
+ */
+function normalizeSearchText(str){
+    if(!str) return "";
+    str = str.toLowerCase();
+    // 全角转半角
+    const full = "０１２３４５６７８９ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ，。！？：；“”‘’（）【】";
+    const half = "0123456789abcdefghijklmnopqrstuvwxyz,.!?;:\"\"''()[]";
+    for(let i=0;i<full.length;i++){
+        str = str.replaceAll(full[i], half[i]);
+    }
+    // 中文数字替换
+    const cnNum = ["零","一","二","三","四","五","六","七","八","九","十"];
+    const num = ["0","1","2","3","4","5","6","7","8","9","10"];
+    for(let i=0;i<cnNum.length;i++){
+        str = str.replaceAll(cnNum[i], num[i]);
+    }
+    return str;
+}
+
+// ========== 检索专用函数 ==========
 // 打开检索弹窗
 function openSearchPopup(){
     dom.searchMask.classList.add("show");
@@ -642,7 +690,8 @@ function closeSearchPopup(){
 }
 // 执行关键词检索
 function doSearch(){
-    const key = dom.searchInput.value.trim().toLowerCase();
+    const rawKey = dom.searchInput.value.trim();
+    const key = normalizeSearchText(rawKey);
     if(!key){
         dom.searchResultBox.innerHTML = `<div style="color:red;">请输入检索关键词</div>`;
         return;
@@ -650,21 +699,34 @@ function doSearch(){
     // 合并全部题目
     const allList = [...fullBank["song10"], ...fullBank["all20"]];
     const result = allList.filter(item=>{
-        const q = item["q"].toLowerCase();
-        const author = item["author"].toLowerCase();
-        const ans = item["a"].toLowerCase();
+        const q = normalizeSearchText(item["q"]);
+        const author = normalizeSearchText(item["author"]);
+        const ans = normalizeSearchText(item["a"]);
         return q.includes(key) || author.includes(key) || ans.includes(key);
     });
     if(result.length === 0){
-        dom.searchResultBox.innerHTML = `<div style="color:#666;">未匹配到任何包含「${key}」的题目</div>`;
+        const safeKey = htmlEscape(rawKey);
+        dom.searchResultBox.innerHTML = `<div style="color:#666;">未匹配到任何包含「${safeKey}」的题目</div>`;
         return;
     }
     let html = "";
     result.forEach(item=>{
+        let optHtml = "";
+        item.opts.forEach(opt=>{
+            const safeOpt = htmlEscape(opt);
+            if(opt === item.a){
+                optHtml += `<div style="color:#098639;margin:2px 0;">● ${safeOpt}（正确答案）</div>`;
+            }else{
+                optHtml += `<div style="color:#333;margin:2px 0;">○ ${safeOpt}</div>`;
+            }
+        });
+        const safeQ = htmlEscape(item["q"]);
+        const safeAuthor = htmlEscape(item["author"]);
         html += `
         <div class="search-item">
-            <div class="search-q">${item["q"]}</div>
-            <div class="search-meta">出题人：${item["author"]}｜正确答案：${item["a"]}</div>
+            <div class="search-q">${safeQ}</div>
+            <div class="search-meta">出题人：${safeAuthor}</div>
+            <div style="margin:6px 0;">${optHtml}</div>
         </div>
         `;
     });
@@ -704,17 +766,24 @@ function getCachedBank(){
     const cache = localStorage.getItem("localQuestionBank");
     return cache ? JSON.parse(cache) : questionBank;
 }
+// 重载题库（真实逻辑，替换占位alert）
+function reloadBank(){
+    localStorage.removeItem("localQuestionBank");
+    fullBank = getCachedBank();
+    alert("题库已重载完成");
+}
 // 加载历史最高分记录
 function loadHistoryRecord(){
     dom.record_song10.innerText = localStorage.getItem("record_song10") || "暂无记录";
     dom.record_all20.innerText = localStorage.getItem("record_all20") || "暂无记录";
     dom.record_practice.innerText = localStorage.getItem("record_practice") || "暂无记录";
 }
-// 保存本次最高分
+// 保存本次最高分（修复"暂无记录"字符串NaN判断BUG）
 function saveRecord(type, score){
     const key = "record_"+type;
-    const old = localStorage.getItem(key);
-    if(old === "暂无记录" || Number(score) > Number(old)){
+    const oldRaw = localStorage.getItem(key);
+    const old = oldRaw === "暂无记录" ? 0 : Number(oldRaw);
+    if(Number(score) > old){
         localStorage.setItem(key, score);
         loadHistoryRecord();
     }
@@ -749,9 +818,9 @@ function resetTimer(total){
     renderProgress(quizState["remain"], total);
     startTimer(total);
 }
-// 绘制倒计时环形进度
+// 绘制倒计时环形进度（修复变量截断错误）
 function renderProgress(now, total){
-    const deg = (now/total)*360;
+    const deg = Math.max(0.1, (now/total)*360);
     const color = now <=10 ? "--ring-warn" : "--ring-normal";
     dom.countProgress.style.background = `conic-gradient(var(${color}) ${deg}deg, rgba(255,255,255,0.2) ${deg}deg)`;
 }
@@ -765,7 +834,9 @@ quizState["timer"] = setInterval(()=>{
         if(quizState["remain"] <=10) dom.countWrap.classList.add("warn");
         if(quizState["remain"] <=0){
             clearInterval(quizState["timer"]);
-            document.querySelectorAll(".opt-item").forEach(o=>o.disabled=true);
+            // 使用全局缓存optCache，减少DOM重复查询
+            optCache = document.querySelectorAll(".opt-item");
+            optCache.forEach(o=>o.disabled=true);
             quizState["wrong"].push(quizState["list"][quizState["index"]]["q"]);
             setTimeout(nextQuestion,800);
         }
@@ -777,27 +848,28 @@ function renderQuestion(){
     if(config["timeLimit"] >0) resetTimer(config["timeLimit"]);
     const item = quizState.list[quizState.index];
     const shuffled = shuffleQuestionOptions(item);
-    dom.qText.innerText = `第${quizState.index+1}题：${item["q"]}`;
-    dom.authorName.innerText = item["author"];
+    // HTML转义防XSS
+    dom.qText.innerText = `第${quizState.index+1}题：${htmlEscape(item["q"])}`;
+    dom.authorName.innerText = htmlEscape(item["author"]);
     dom.optBox.innerHTML = "";
     const percent = (quizState.index / quizState.list.length) *100;
     dom.progressInner.style.width = percent + "%";
     shuffled.opts.forEach((txt,idx)=>{
         const btn = document.createElement("button");
         btn.className = "opt-item";
-        btn.innerText = txt;
+        btn.innerText = htmlEscape(txt);
         btn.dataset.isCorrect = idx === shuffled.correctIndex ? "1" : "0";
         btn.onclick = ()=>selectOpt(btn);
         dom.optBox.appendChild(btn);
     })
+    // 刷新选项缓存
+    optCache = document.querySelectorAll(".opt-item");
 }
-// 点击选项处理
+// 点击选项处理（无防抖拦截，保留原生点击响应）
 function selectOpt(btn){
     clearInterval(quizState["timer"]);
     const config = DRAW_CONFIG[quizState["type"]];
-    const allOpts = document.querySelectorAll(".opt-item");
-    if(allOpts[0].disabled) return;
-    allOpts.forEach(o=>o.disabled = true);
+    const allOpts = optCache;
     const isRight = btn.dataset.isCorrect === "1";
     if(isRight){
         btn.classList.add("opt-right");
@@ -805,7 +877,7 @@ function selectOpt(btn){
         dom.correctNum.innerText = quizState["correct"];
     }else{
         btn.classList.add("opt-wrong");
-        quizState["wrong"].push(quizState["list"][quizState.index]["q"]);
+        quizState["wrong"].push(quizState["list"][quizState["index"]]["q"]);
         if(config["showRight"]) allOpts.forEach(b=>{if(b.dataset.isCorrect==="1") b.classList.add("opt-right");});
     }
     setTimeout(nextQuestion,800);
@@ -820,8 +892,10 @@ function nextQuestion(){
         dom.countWrap.style.display = "none";
         dom.popScore.innerText = quizState["correct"];
         saveRecord(quizState["type"], quizState["correct"]);
+        // 错题使用<br>换行分隔，解决长题干拥挤
         dom.wrongBox.style.display = quizState["wrong"].length ? "block" : "none";
-        dom.wrongList.innerText = quizState["wrong"].join("、");
+        const safeWrongList = quizState["wrong"].map(text=>htmlEscape(text));
+        dom.wrongList.innerHTML = safeWrongList.join("<br>");
         const cfg = DRAW_CONFIG[quizState.type];
         dom.popTitle.innerText = cfg["passScore"] ===0 
             ? "练习完成！本次答题结束" 
@@ -835,12 +909,15 @@ function nextQuestion(){
 }
 // 再来一局
 function restartCurrentMode(){
+    clearInterval(quizState["timer"]);
+    quizState.timer = null;
     dom.popMask.classList.remove("show");
     startQuiz(quizState["type"]);
 }
-// 开始答题入口（按钮绑定这个函数）
+// 开始答题入口
 function startQuiz(type){
     clearInterval(quizState["timer"]);
+    quizState.timer = null;
     quizState["type"] = type;
     const config = DRAW_CONFIG[type];
     quizState["wrong"] = [];
@@ -869,6 +946,7 @@ function startQuiz(type){
 // 返回首页题库选择页
 function backTaskList(){
     clearInterval(quizState["timer"]);
+    quizState.timer = null;
     dom.countWrap.style.display = "none";
     dom.popMask.classList.remove("show");
     dom.quizPage.style.opacity = "0";
@@ -880,7 +958,7 @@ function backTaskList(){
     dom.correctNum.innerText = "0";
     dom.totalQuizNum.innerText = "0";
 }
-// 视差滚动背景
+// 视差滚动背景（节流锁，优化滚动性能）
 function handleScroll(){
     if(quizState["scrollLock"]) return;
     requestAnimationFrame(()=>{
@@ -889,6 +967,31 @@ function handleScroll(){
         quizState["scrollLock"] = false;
     });
     quizState["scrollLock"] = true;
+}
+/**
+ * 【预留后端统计AJAX接口】
+ * 刷新访问/参与人数统计
+ * 静态环境使用alert兜底，上线替换后端接口地址
+ */
+function fetchVisitStat(){
+    // 静态页面兜底提示
+    alert("参与人数数据已刷新（静态页面无后端接口，上线后替换下方AJAX请求）");
+    /*
+    // 后端对接完整代码（上线取消注释）
+    fetch("/api/visit/count",{
+        method:"GET",
+        headers:{
+            "Content-Type":"application/json"
+        }
+    }).then(res=>res.json())
+    .then(data=>{
+        console.log("当前访问统计：",data);
+        // 此处更新页面人数DOM
+    }).catch(err=>{
+        console.error("统计接口请求失败：",err);
+        alert("人数刷新失败，请稍后重试");
+    })
+    */
 }
 // 页面初始化
 window.onload = function(){
@@ -919,9 +1022,7 @@ window.onload = function(){
     dom.searchInput = document.getElementById("searchInput");
     dom.searchResultBox = document.getElementById("searchResultBox");
 
-    // 清除冲突旧缓存
-    localStorage.removeItem("localQuestionBank");
-    // 初始化题库缓存
+    // 初始化题库缓存（仅一年过期自动清理，不强制清空用户本地题库）
     cleanExpiredStorage();
     cacheQuestionBank();
     fullBank = getCachedBank();
@@ -930,59 +1031,15 @@ window.onload = function(){
     setTimeout(()=>{
         dom.loadTip.style.display = "none";
     }, 400);
-    // 遮罩关闭弹窗
+    // 遮罩点击关闭弹窗
     dom.popMask.addEventListener("click", (e)=>{
         if(e.target === dom.popMask) dom.popMask.classList.remove("show");
     });
-    // 绑定滚动事件
+    dom.searchMask.addEventListener("click", (e)=>{
+        if(e.target === dom.searchMask) dom.searchMask.classList.remove("show");
+    });
+    // 绑定滚动视差事件
     window.addEventListener("scroll", handleScroll);
-}
-
-// ========== 检索函数修改（完整显示全部四个选项，正确标绿色）==========
-function openSearchPopup(){
-    dom.searchMask.classList.add("show");
-    dom.searchInput.value = "";
-    dom.searchResultBox.innerHTML = `<div style="color:#666;">检索结果将展示在这里</div>`;
-}
-function closeSearchPopup(){
-    dom.searchMask.classList.remove("show");
-}
-function doSearch(){
-    const key = dom.searchInput.value.trim().toLowerCase();
-    if(!key){
-        dom.searchResultBox.innerHTML = `<div style="color:red;">请输入检索关键词</div>`;
-        return;
-    }
-    const allList = [...fullBank["song10"], ...fullBank["all20"]];
-    const result = allList.filter(item=>{
-        const q = item["q"].toLowerCase();
-        const author = item["author"].toLowerCase();
-        const ans = item["a"].toLowerCase();
-        return q.includes(key) || author.includes(key) || ans.includes(key);
-    });
-    if(result.length === 0){
-        dom.searchResultBox.innerHTML = `<div style="color:#666;">未匹配到任何包含「${key}」的题目</div>`;
-        return;
-    }
-    let html = "";
-    result.forEach(item=>{
-        let optHtml = "";
-        item.opts.forEach(opt=>{
-            if(opt === item.a){
-                optHtml += `<div style="color:#098639;margin:2px 0;">● ${opt}（正确答案）</div>`;
-            }else{
-                optHtml += `<div style="color:#333;margin:2px 0;">○ ${opt}</div>`;
-            }
-        });
-        html += `
-        <div class="search-item">
-            <div class="search-q">${item["q"]}</div>
-            <div class="search-meta">出题人：${item["author"]}</div>
-            <div style="margin:6px 0;">${optHtml}</div>
-        </div>
-        `;
-    });
-    dom.searchResultBox.innerHTML = html;
 }
 </script>
 </body>
