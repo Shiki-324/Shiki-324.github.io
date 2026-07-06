@@ -267,7 +267,7 @@ body::after{
     color:#007777;
     margin-bottom:8px;
 }
-.task-btn,.refresh-btn,.back-btn,.restart-btn{
+.task-btn,.refresh-btn,.back-btn,.restart-btn,.search-btn{
     padding:6px 14px;
     border:none;
     border-radius:999px;
@@ -275,13 +275,14 @@ body::after{
     cursor:pointer;
     transition:transform 0.2s;
 }
-.task-btn:active,.refresh-btn:active,.back-btn:active,.restart-btn:active{
+.task-btn:active,.refresh-btn:active,.back-btn:active,.restart-btn:active,.search-btn:active{
     transform:scale(0.96);
 }
 .task-btn{background:#ff87a2;color:#fff;margin-right:8px;}
 .refresh-btn{background:#999;color:#fff;}
 .restart-btn{background:#70c8f8;color:#000;padding:12px 26px;font-size:16px;}
 .back-btn{background:#ff87a2;color:#fff;padding:12px 26px;font-size:16px;}
+.search-btn{background:#28a745;color:#fff;margin-right:8px;}
 .pop-mask{
     position:fixed;
     inset:0;
@@ -348,6 +349,41 @@ body::after{
     font-size:16px;
     background:rgba(255,255,255,0.5);
 }
+/* 检索弹窗专用样式 */
+.search-input{
+    width:100%;
+    padding:10px 14px;
+    border:1px solid #ccc;
+    border-radius:8px;
+    font-size:16px;
+    margin-bottom:16px;
+}
+.search-result-box{
+    max-height:280px;
+    overflow-y:auto;
+    text-align:left;
+    padding:8px;
+    background:#f8f8f8;
+    border-radius:8px;
+    margin:12px 0;
+}
+.search-item{
+    padding:8px 0;
+    border-bottom:1px solid #ddd;
+}
+.search-item:last-child{
+    border-bottom:none;
+}
+.search-q{
+    font-weight:bold;
+    font-size:14px;
+    color:#000;
+    margin-bottom:4px;
+}
+.search-meta{
+    font-size:12px;
+    color:#555;
+}
 @media screen and (min-width:900px){
     .quiz-page{
         display:grid;
@@ -379,6 +415,7 @@ body::after{
                 <span id="correctNum">0</span>/<span id="totalQuizNum">0</span>
             </div>
         </div>
+        <!-- 基础题库 -->
         <div class="task-card">
             <div class="task-title">基础题库（10题）</div>
             <div class="history-record">历史最高分：<span id="record_song10">暂无记录</span></div>
@@ -386,6 +423,7 @@ body::after{
             <button class="task-btn" onclick="startQuiz('song10')">开始挑战</button>
             <button class="refresh-btn" onclick="alert('参与人数数据已刷新')">刷新</button>
         </div>
+        <!-- 综合题库 -->
         <div class="task-card">
             <div class="task-title">综合题库（20题）</div>
             <div class="history-record">历史最高分：<span id="record_all20">暂无记录</span></div>
@@ -393,12 +431,21 @@ body::after{
             <button class="task-btn" onclick="startQuiz('all20')">开始挑战</button>
             <button class="refresh-btn" onclick="alert('参与人数数据已刷新')">刷新</button>
         </div>
+        <!-- 练习模式 -->
         <div class="task-card">
             <div class="task-title">练习模式（15题）</div>
             <div class="history-record">单次最高答对：<span id="record_practice">暂无记录</span></div>
             <div class="task-desc">不限时刷题，从全部题库中随机抽取15题，答错会高亮正确选项。</div>
             <button class="task-btn" onclick="startQuiz('practice')">开始练习</button>
             <button class="refresh-btn" onclick="alert('参与人数数据已刷新')">刷新</button>
+        </div>
+        <!-- 新增：开发者检索 -->
+        <div class="task-card">
+            <div class="task-title">开发者检索</div>
+            <div class="history-record">题库全局关键词检索工具</div>
+            <div class="task-desc">输入任意关键词，检索所有包含该文字的题目，匹配题干、出题人、正确答案。</div>
+            <button class="search-btn" onclick="openSearchPopup()">打开检索</button>
+            <button class="refresh-btn" onclick="alert('题库数据已重载')">重载题库</button>
         </div>
     </div>
     <div class="quiz-page" id="quizPage">
@@ -419,6 +466,7 @@ body::after{
     </div>
 </div>
 <div class="bottom-line"></div>
+<!-- 答题结算弹窗 -->
 <div class="pop-mask" id="popMask">
     <div class="pop-inner">
         <h2 class="pop-h" id="popTitle">挑战完成！</h2>
@@ -430,6 +478,20 @@ body::after{
         <div class="pop-btn-group">
             <button class="restart-btn" onclick="restartCurrentMode()">再来一局</button>
             <button class="back-btn" onclick="backTaskList()">返回题库列表</button>
+        </div>
+    </div>
+</div>
+<!-- 检索弹窗 -->
+<div class="pop-mask" id="searchMask">
+    <div class="pop-inner">
+        <h2 class="pop-h">题库关键词检索</h2>
+        <input class="search-input" id="searchInput" placeholder="输入关键词（角色/知识点/出题人）">
+        <div class="pop-btn-group" style="margin-bottom:12px;">
+            <button class="search-btn" onclick="doSearch()">执行检索</button>
+            <button class="refresh-btn" onclick="closeSearchPopup()">关闭</button>
+        </div>
+        <div class="search-result-box" id="searchResultBox">
+            <div style="color:#666;">检索结果将展示在这里</div>
         </div>
     </div>
 </div>
@@ -500,7 +562,6 @@ const questionBank = {
         {"q":"科考摩托的涂装总共有几个部位可以DIY？","author":"Shikiヽ","a":"3","opts":["2","3","4","5"]}
     ],
     "all20":[
-        {"q":"以下四套声骸里作为风蚀队三号位的风主最适合带哪套","author":"飞行雪绒--official","a":"愿戴荣光之旅","opts":["流云逝尽之空","隐世回光","轻云出月","愿戴荣光之旅"]},
         {"q":"仇远的声痕在哪里？","author":"Shikiヽ","a":"右手手掌","opts":["脖子左侧","后脖颈","右手手掌","右手手臂内侧"]},
         {"q":"今汐的消耗韶光的【龙喷】官方名为？","author":"Shikiヽ","a":"惊龙破空","opts":["游龙迥光","蟠龙清辉","移岁诛邪","惊龙破空"]},
         {"q":"以下关于菲比的描述错误的是","author":"Shikiヽ","a":"超频临界值低但是稳定性高，无过往超频史","opts":["曾经在落水后被英白拉多救过","父母在她小时候就去世了","看见漂泊者获得狂欢节桂冠时落泪了","超频临界值低但是稳定性高，无过往超频史"]},
@@ -545,6 +606,7 @@ const questionBank = {
         {"q":"凌阳伴星致敬了哪个游戏？","author":"Shikiヽ","a":"Ori","opts":["TEVI","Ori","空洞骑士","超级玛丽"]},
         {"q":"以下哪个角色最符合这句话：开大之后按住普攻不松手","author":"Shikiヽ","a":"珂莱塔","opts":["卡提希娅","珂莱塔","爱弥斯","今汐"]},
         {"q":"为什么6链爱弥斯在锄地时4C主属性可以带攻击？","author":"Shikiヽ","a":"因为蓄力炮伤害更高","opts":["因为蓄力炮伤害更高","因为共鸣技能伤害更高","因为大招伤害更高","因为变奏技能伤害更高"]},
+        {"q":"以下四套声骸里作为风蚀队三号位的风主最适合带哪套","author":"飞行雪绒--official","a":"愿戴荣光之旅","opts":["流云逝尽之空","隐世回光","轻云出月","愿戴荣光之旅"]},
         {"q":"卡提希娅绝对不会吃下面哪个食物？","author":"超高校级的非洲人","a":"清芬鱼汤","opts":["青枝月桂沙拉","热海皇梨披萨","清芬鱼汤","玛格烈特牛排"]},
         {"q":"用弗洛洛获取补给时，哪句不是她的语音？","author":"超高校级的非洲人","a":"遗落的回响。","opts":["美妙的音色。","不可或缺。","你将赋予它们什么意义?","遗落的回响。"]}
     ]
@@ -566,6 +628,49 @@ const quizState = {
 };
 let fullBank;
 const dom = {};
+
+// ========== 新增检索专用函数 ==========
+// 打开检索弹窗
+function openSearchPopup(){
+    dom.searchMask.classList.add("show");
+    dom.searchInput.value = "";
+    dom.searchResultBox.innerHTML = `<div style="color:#666;">检索结果将展示在这里</div>`;
+}
+// 关闭检索弹窗
+function closeSearchPopup(){
+    dom.searchMask.classList.remove("show");
+}
+// 执行关键词检索
+function doSearch(){
+    const key = dom.searchInput.value.trim().toLowerCase();
+    if(!key){
+        dom.searchResultBox.innerHTML = `<div style="color:red;">请输入检索关键词</div>`;
+        return;
+    }
+    // 合并全部题目
+    const allList = [...fullBank["song10"], ...fullBank["all20"]];
+    const result = allList.filter(item=>{
+        const q = item["q"].toLowerCase();
+        const author = item["author"].toLowerCase();
+        const ans = item["a"].toLowerCase();
+        return q.includes(key) || author.includes(key) || ans.includes(key);
+    });
+    if(result.length === 0){
+        dom.searchResultBox.innerHTML = `<div style="color:#666;">未匹配到任何包含「${key}」的题目</div>`;
+        return;
+    }
+    let html = "";
+    result.forEach(item=>{
+        html += `
+        <div class="search-item">
+            <div class="search-q">${item["q"]}</div>
+            <div class="search-meta">出题人：${item["author"]}｜正确答案：${item["a"]}</div>
+        </div>
+        `;
+    });
+    dom.searchResultBox.innerHTML = html;
+}
+
 // 洗牌工具函数
 function shuffleArray(arr){
     const copy = [...arr];
@@ -620,28 +725,28 @@ function getRandomQuestions(sourceArr, drawNum){
 }
 // 合并所有题库用于练习模式
 function getAllMixedBank(){
-    return [...fullBank.song10, ...fullBank.all20];
+    return [...fullBank["song10"], ...fullBank["all20"]];
 }
 // 打乱选项顺序
 function shuffleQuestionOptions(qItem){
-    const originOpts = [...qItem.opts];
-    const correctAns = qItem.a;
+    const originOpts = [...qItem["opts"]];
+    const correctAns = qItem["a"];
     const indexed = originOpts.map((text,idx)=>({"text":text,"idx":idx}));
     const shuffled = shuffleArray(indexed);
     let newCorrectIdx = 0;
     const newOpts = shuffled.map((item,newIdx)=>{
-        if(originOpts[item.idx] === correctAns) newCorrectIdx = newIdx;
-        return item.text;
+        if(originOpts[item["idx"]] === correctAns) newCorrectIdx = newIdx;
+        return item["text"];
     });
     return {"opts":newOpts, "correctIndex":newCorrectIdx};
 }
 // 重置倒计时
 function resetTimer(total){
-    clearInterval(quizState.timer);
-    quizState.remain = total;
-    dom.countCircle.innerText = quizState.remain;
+    clearInterval(quizState["timer"]);
+    quizState["remain"] = total;
+    dom.countCircle.innerText = quizState["remain"];
     dom.countWrap.classList.remove("warn");
-    renderProgress(quizState.remain, total);
+    renderProgress(quizState["remain"], total);
     startTimer(total);
 }
 // 绘制倒计时环形进度
@@ -652,24 +757,24 @@ function renderProgress(now, total){
 }
 // 倒计时定时器
 function startTimer(total){
-    clearInterval(quizState.timer);
-    quizState.timer = setInterval(()=>{
-        quizState.remain--;
-        dom.countCircle.innerText = quizState.remain;
-        renderProgress(quizState.remain, total);
-        if(quizState.remain <=10) dom.countWrap.classList.add("warn");
-        if(quizState.remain <=0){
-            clearInterval(quizState.timer);
+    clearInterval(quizState["timer"]);
+quizState["timer"] = setInterval(()=>{
+        quizState["remain"]--;
+        dom.countCircle.innerText = quizState["remain"];
+        renderProgress(quizState["remain"], total);
+        if(quizState["remain"] <=10) dom.countWrap.classList.add("warn");
+        if(quizState["remain"] <=0){
+            clearInterval(quizState["timer"]);
             document.querySelectorAll(".opt-item").forEach(o=>o.disabled=true);
-            quizState.wrong.push(quizState.list[quizState.index]["q"]);
+            quizState["wrong"].push(quizState["list"][quizState["index"]]["q"]);
             setTimeout(nextQuestion,800);
         }
     },1000);
 }
 // 渲染单题
 function renderQuestion(){
-    const config = DRAW_CONFIG[quizState.type];
-    if(config.timeLimit >0) resetTimer(config.timeLimit);
+    const config = DRAW_CONFIG[quizState["type"]];
+    if(config["timeLimit"] >0) resetTimer(config["timeLimit"]);
     const item = quizState.list[quizState.index];
     const shuffled = shuffleQuestionOptions(item);
     dom.qText.innerText = `第${quizState.index+1}题：${item["q"]}`;
@@ -688,20 +793,20 @@ function renderQuestion(){
 }
 // 点击选项处理
 function selectOpt(btn){
-    clearInterval(quizState.timer);
-    const config = DRAW_CONFIG[quizState.type];
+    clearInterval(quizState["timer"]);
+    const config = DRAW_CONFIG[quizState["type"]];
     const allOpts = document.querySelectorAll(".opt-item");
     if(allOpts[0].disabled) return;
     allOpts.forEach(o=>o.disabled = true);
     const isRight = btn.dataset.isCorrect === "1";
     if(isRight){
         btn.classList.add("opt-right");
-        quizState.correct++;
-        dom.correctNum.innerText = quizState.correct;
+        quizState["correct"]++;
+        dom.correctNum.innerText = quizState["correct"];
     }else{
         btn.classList.add("opt-wrong");
-        quizState.wrong.push(quizState.list[quizState.index]["q"]);
-        if(config.showRight) allOpts.forEach(b=>{if(b.dataset.isCorrect==="1") b.classList.add("opt-right");});
+        quizState["wrong"].push(quizState["list"][quizState.index]["q"]);
+        if(config["showRight"]) allOpts.forEach(b=>{if(b.dataset.isCorrect==="1") b.classList.add("opt-right");});
     }
     setTimeout(nextQuestion,800);
 }
@@ -711,16 +816,16 @@ function nextQuestion(){
     const percent = (quizState.index / quizState.list.length) *100;
     dom.progressInner.style.width = percent + "%";
     if(quizState.index >= quizState.list.length){
-        clearInterval(quizState.timer);
+        clearInterval(quizState["timer"]);
         dom.countWrap.style.display = "none";
-        dom.popScore.innerText = quizState.correct;
-        saveRecord(quizState.type, quizState.correct);
-        dom.wrongBox.style.display = quizState.wrong.length ? "block" : "none";
-        dom.wrongList.innerText = quizState.wrong.join("、");
+        dom.popScore.innerText = quizState["correct"];
+        saveRecord(quizState["type"], quizState["correct"]);
+        dom.wrongBox.style.display = quizState["wrong"].length ? "block" : "none";
+        dom.wrongList.innerText = quizState["wrong"].join("、");
         const cfg = DRAW_CONFIG[quizState.type];
         dom.popTitle.innerText = cfg["passScore"] ===0 
             ? "练习完成！本次答题结束" 
-            : quizState.correct >= cfg["passScore"] 
+            : quizState["correct"] >= cfg["passScore"] 
                 ? "挑战达标！可领取入站资格" 
                 : `未达标，至少答对${cfg["passScore"]}题`;
         dom.popMask.classList.add("show");
@@ -731,14 +836,14 @@ function nextQuestion(){
 // 再来一局
 function restartCurrentMode(){
     dom.popMask.classList.remove("show");
-    startQuiz(quizState.type);
+    startQuiz(quizState["type"]);
 }
 // 开始答题入口（按钮绑定这个函数）
 function startQuiz(type){
-    clearInterval(quizState.timer);
-    quizState.type = type;
+    clearInterval(quizState["timer"]);
+    quizState["type"] = type;
     const config = DRAW_CONFIG[type];
-    quizState.wrong = [];
+    quizState["wrong"] = [];
     const source = type === "practice" ? getAllMixedBank() : fullBank[type];
     quizState.list = getRandomQuestions(source, config["drawCount"]);
     quizState.index = 0;
@@ -763,7 +868,7 @@ function startQuiz(type){
 }
 // 返回首页题库选择页
 function backTaskList(){
-    clearInterval(quizState.timer);
+    clearInterval(quizState["timer"]);
     dom.countWrap.style.display = "none";
     dom.popMask.classList.remove("show");
     dom.quizPage.style.opacity = "0";
@@ -777,13 +882,13 @@ function backTaskList(){
 }
 // 视差滚动背景
 function handleScroll(){
-    if(quizState.scrollLock) return;
+    if(quizState["scrollLock"]) return;
     requestAnimationFrame(()=>{
         const y = window.scrollY;
         dom.bgImg.style.transform = `translateY(${y*0.12}px) scale(1.01)`;
-        quizState.scrollLock = false;
+        quizState["scrollLock"] = false;
     });
-    quizState.scrollLock = true;
+    quizState["scrollLock"] = true;
 }
 // 页面初始化
 window.onload = function(){
@@ -809,6 +914,11 @@ window.onload = function(){
     dom.record_song10 = document.getElementById("record_song10");
     dom.record_all20 = document.getElementById("record_all20");
     dom.record_practice = document.getElementById("record_practice");
+    // 检索弹窗DOM
+    dom.searchMask = document.getElementById("searchMask");
+    dom.searchInput = document.getElementById("searchInput");
+    dom.searchResultBox = document.getElementById("searchResultBox");
+
     // 清除冲突旧缓存
     localStorage.removeItem("localQuestionBank");
     // 初始化题库缓存
@@ -820,12 +930,59 @@ window.onload = function(){
     setTimeout(()=>{
         dom.loadTip.style.display = "none";
     }, 400);
-    // 点击遮罩关闭弹窗
+    // 遮罩关闭弹窗
     dom.popMask.addEventListener("click", (e)=>{
         if(e.target === dom.popMask) dom.popMask.classList.remove("show");
     });
     // 绑定滚动事件
     window.addEventListener("scroll", handleScroll);
+}
+
+// ========== 检索函数修改（完整显示全部四个选项，正确标绿色）==========
+function openSearchPopup(){
+    dom.searchMask.classList.add("show");
+    dom.searchInput.value = "";
+    dom.searchResultBox.innerHTML = `<div style="color:#666;">检索结果将展示在这里</div>`;
+}
+function closeSearchPopup(){
+    dom.searchMask.classList.remove("show");
+}
+function doSearch(){
+    const key = dom.searchInput.value.trim().toLowerCase();
+    if(!key){
+        dom.searchResultBox.innerHTML = `<div style="color:red;">请输入检索关键词</div>`;
+        return;
+    }
+    const allList = [...fullBank["song10"], ...fullBank["all20"]];
+    const result = allList.filter(item=>{
+        const q = item["q"].toLowerCase();
+        const author = item["author"].toLowerCase();
+        const ans = item["a"].toLowerCase();
+        return q.includes(key) || author.includes(key) || ans.includes(key);
+    });
+    if(result.length === 0){
+        dom.searchResultBox.innerHTML = `<div style="color:#666;">未匹配到任何包含「${key}」的题目</div>`;
+        return;
+    }
+    let html = "";
+    result.forEach(item=>{
+        let optHtml = "";
+        item.opts.forEach(opt=>{
+            if(opt === item.a){
+                optHtml += `<div style="color:#098639;margin:2px 0;">● ${opt}（正确答案）</div>`;
+            }else{
+                optHtml += `<div style="color:#333;margin:2px 0;">○ ${opt}</div>`;
+            }
+        });
+        html += `
+        <div class="search-item">
+            <div class="search-q">${item["q"]}</div>
+            <div class="search-meta">出题人：${item["author"]}</div>
+            <div style="margin:6px 0;">${optHtml}</div>
+        </div>
+        `;
+    });
+    dom.searchResultBox.innerHTML = html;
 }
 </script>
 </body>
