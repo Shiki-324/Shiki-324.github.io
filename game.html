@@ -568,6 +568,7 @@ const questionBank = {
 {"q":"在长迹伴行内获得获得称号【寰星之律】需要的积分是","author":"超高校级的非洲人","a":"5000","opts":["3000","4500","5000","7500"]},
 {"q":"仅使用一个特级密音筒可以让一个0级的五星声骸提升至多少级升至多","author":"超高校级的非洲人","a":"5级","opts":["3级","4级","5级","6级"]},
 {"q":"在好友里最多可以添加的好友数量是","author":"超高校级的非洲人","a":"50","opts":["30","50","70","100"]},
+{"q":"鸣潮是哪家游戏公司的产品","author":"白菜菜Cc","a":"库洛游戏","opts":["弗洛游戏","爱弥斯联合","黑海岸","库洛游戏"]},
 {"q":"弗洛洛的声痕位于她的？","author":"超高校级的非洲人","a":"左臂","opts":["左臂","右臂","左肩","腰椎"]}
     ],
     "all20":[
@@ -576,7 +577,7 @@ const questionBank = {
 {"q":"以下关于菲比的描述错误的是","author":"Shikiヽ","a":"超频临界值低但是稳定性高，无过往超频史","opts":["曾经在落水后被英白拉多救过","父母在她小时候就去世了","看见漂泊者获得狂欢节桂冠时落泪了","超频临界值低但是稳定性高，无过往超频史"]},
 {"q":"以下哪一个不是弗洛洛的珍贵之物","author":"Shikiヽ","a":"迷你奏音","opts":["迷你奏音","未送出的门票","遗留的提琴","自撰的乐谱"]},
 {"q":"以下描述正确的是？","author":"Shikiヽ","a":"珍珠草使用没有冷却","opts":["珍珠草使用没有冷却","伪母贝又叫【海中灯笼草】","铛铛蟹在夜晚觅食","玉化木中融合了隧者频率"]},
-{"q":"2.8版本开篇漂泊者初入穗波时的背景音乐致敬了尼尔的哪首BGM？","author":"Shikiヽ","a":"远古之歌","opts":["Weight of the World","遊園施設","远古之歌","遺サレタ場所／斜光"]},
+//{"q":"2.8版本开篇漂泊者初入穗波时的背景音乐致敬了尼尔的哪首BGM？","author":"Shikiヽ","a":"远古之歌","opts":["Weight of the World","遊園施設","远古之歌","遺サレタ場所／斜光"]},
 {"q":"达妮娅讨厌的食物是什么？","author":"Shikiヽ","a":"生的东西","opts":["生的东西","没有特别讨厌的食物","吃起来麻烦的东西，因为吃起来麻烦......","辣的东西"]},
 {"q":"琳奈最喜欢什么？","author":"Shikiヽ","a":"飙车","opts":["逃课","机车涂装","轮滑跑酷","飙车"]},
 {"q":"小明仅用一队就在矩阵的奇点扩张打满了58000分，他能因此获得多少星声？","author":"Shikiヽ","a":"150","opts":["150","200","250","300"]},
@@ -587,7 +588,7 @@ const questionBank = {
 {"q":"关于散华为什么适合辅助椿？以下描述最合理的是","author":"Shikiヽ","a":"能提供普攻伤害加成","opts":["协奏速度快","能提供普攻伤害加成","给椿的核心输出点大招提供增伤","能给椿提供充能效率加快循环"]},
 {"q":"截至鸣潮3.4版本为止，唯一一个辅助2链抽取优先级与主C2链抽取优先级不相上下的是哪个队伍？","author":"Shikiヽ","a":"赞菲光噪队","opts":["聚爆爱弥斯队","绯雪霜渐队","赞菲光噪队","卡夏风蚀队"]},
 {"q":"打一鸣潮专有名词：🥔🔥😈💁‍♂️","author":"Shikiヽ","a":"科考摩托","opts":["热熔抗性","寻音声纳","浮金波纹","科考摩托"]},
-{"q":"这是鸣潮的哪个角色：🌏🌏👅","author":"Shikiヽ","a":"坎特蕾拉","opts":["洛可可","安可","坎特蕾拉","维里奈"]},
+//{"q":"这是鸣潮的哪个角色：🌏🌏👅","author":"Shikiヽ","a":"坎特蕾拉","opts":["洛可可","安可","坎特蕾拉","维里奈"]},
 {"q":"3+3＝？","author":"Shikiヽ","a":"24","opts":["12","18","24","30"]},
 {"q":"【夏！日！服！饰！】最早出自鸣潮哪个版本的前瞻直播？","author":"Shikiヽ","a":"2.3","opts":["2","2.3","2.4","2.7"]},
 {"q":"主线开篇，漂泊者第一个知道名字的人是？","author":"Shikiヽ","a":"炽霞","opts":["秧秧","炽霞","守岸人","今汐"]},
@@ -690,7 +691,7 @@ function openSearchPopup(){
 function closeSearchPopup(){
     dom.searchMask.classList.remove("show");
 }
-// 执行关键词检索
+// 执行关键词检索【修复：直接读取原始questionBank，不依赖缓存fullBank】
 function doSearch(){
     const rawKey = dom.searchInput.value.trim();
     const key = normalizeSearchText(rawKey);
@@ -698,8 +699,8 @@ function doSearch(){
         dom.searchResultBox.innerHTML = `<div style="color:red;">请输入检索关键词</div>`;
         return;
     }
-    // 合并全部题目
-    const allList = [...fullBank["song10"], ...fullBank["all20"]];
+    // 修复点：直接读取原始题库，绕过缓存变量，保证能搜到新增题目
+    const allList = [...questionBank["song10"], ...questionBank["all20"]];
     const result = allList.filter(item=>{
         const q = normalizeSearchText(item["q"]);
         const author = normalizeSearchText(item["author"]);
@@ -756,12 +757,11 @@ function cleanExpiredStorage(){
         localStorage.setItem("save_time", Date.now());
     }
 }
-// 缓存题库到本地
+// 缓存题库到本地【修复：每次加载强制覆盖本地缓存，新增题目自动同步】
 function cacheQuestionBank(){
-    if(!localStorage.getItem("localQuestionBank")){
-        localStorage.setItem("localQuestionBank", JSON.stringify(questionBank));
-        localStorage.setItem("save_time", Date.now());
-    }
+    // 删除if判断，页面打开直接写入最新题库
+    localStorage.setItem("localQuestionBank", JSON.stringify(questionBank));
+       localStorage.setItem("save_time", Date.now());
 }
 // 读取本地缓存题库
 function getCachedBank(){
@@ -771,8 +771,11 @@ function getCachedBank(){
 // 重载题库（真实逻辑，替换占位alert）
 function reloadBank(){
     localStorage.removeItem("localQuestionBank");
+    // 重载时强制写入最新题库
+    localStorage.setItem("localQuestionBank", JSON.stringify(questionBank));
+    localStorage.setItem("save_time", Date.now());
     fullBank = getCachedBank();
-    alert("题库已重载完成");
+    alert("题库已重载完成！若仍看不到新题目，请按 Ctrl+F5 强制刷新页面");
 }
 // 加载历史最高分记录
 function loadHistoryRecord(){
